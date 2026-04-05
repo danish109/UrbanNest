@@ -1,8 +1,22 @@
 # Node
 node_modules/
+dist/
+build/
+
+# Env files
 .env
-.env.local
-.env.production.local
+.env.*
+URABNNEST_BACKEND/.env
+ml_module/.env
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
 
 # Python
 __pycache__/
@@ -10,14 +24,8 @@ __pycache__/
 venv/
 .env
 
-# Build output
-dist/
-build/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Uploads / temp
-/tmp/
-uploads/
+# ML models (IMPORTANT)
+*.h5
+*.pt
+*.pkl
+*.joblib
