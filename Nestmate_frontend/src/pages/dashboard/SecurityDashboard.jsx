@@ -960,9 +960,15 @@ const SecurityDashboard = () => {
                 className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#ffb703] outline-none"
                 value={addVisitorForm.residentId} 
                 onChange={(e) => {
-                  const sel = residents.find(r => r._id === e.target.value);
-                  setAddVisitorForm({...addVisitorForm, residentId: e.target.value, flatNo: sel?.flatNo || "", block: sel?.block || "", visitorFor: sel?.fullName || ""});
-                }}
+  const sel = residents.find(r => r._id === e.target.value);
+  setAddVisitorForm({
+    ...addVisitorForm, 
+    residentId: e.target.value, 
+    flatNo: sel?.flatNo || "", 
+    block: sel?.block || "", 
+    visitorFor: sel?.fullName || sel?.name || e.target.value || ""
+  });
+}}
               >
                 <option value="">Search & Select Resident</option>
                 {residents.map(r => (
