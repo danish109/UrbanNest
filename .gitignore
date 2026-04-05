@@ -2,6 +2,7 @@
 node_modules/
 dist/
 build/
+node_modules
 
 # Env files
 .env

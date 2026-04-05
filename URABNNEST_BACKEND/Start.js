@@ -13,17 +13,24 @@ io.attach(httpServer);
 // Make io accessible in controllers
 app.set("io", io);
 
+// Start server
 httpServer.listen(PORT, () => {
   console.log(`✅ NestMate running on port ${PORT}`);
   console.log(`🚀 Express API + Socket.IO on same port`);
 });
 
+// Graceful shutdown handler
 const shutdown = (signal) => {
   console.log(`${signal} received — shutting down...`);
-  httpServer.close(() => process.exit(0));
+
+  httpServer.close(() => {
+    console.log("Server closed successfully");
+    process.exit(0);
+  });
 };
 
-process.on("SIGTERM", () => shutdown("SIGTERM"));
-process.on("SIGINT", () => shutdown("SIGINT"));
+// Register listeners ONLY once
+process.once("SIGTERM", shutdown);
+process.once("SIGINT", shutdown);
 
 export { app, io };
