@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useDispatch } from "react-redux";
+import { setUser } from "../../features/auth/authSlice";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -62,6 +64,8 @@ const AdminLogin = () => {
     resolver: zodResolver(loginSchema),
   });
 
+  const dispatch = useDispatch();
+
   useEffect(() => {
     const handleMouseMove = (e) => {
       setMousePosition({
@@ -75,6 +79,7 @@ const AdminLogin = () => {
 
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
+
 
   const handleLogin = async (data) => {
     setIsLoading(true);
@@ -94,8 +99,7 @@ const AdminLogin = () => {
       );
 
       if (response.data.success) {
-        localStorage.setItem("user", JSON.stringify({ ...response.data.user }));
-        alert("Login successful!");
+        dispatch(setUser(response.data.user))
         navigate("/admin/dashboard");
       }
     } catch (error) {
