@@ -18,7 +18,7 @@ export const handleVisitorAdd = async (req, res) => {
     // }
 
     const { fullName, phone, visitorFor, vehicleDetails, flatNo, block, residentId, purpose } = req.body;
-    if (!fullName || !phone || visitorFor || flatNo || block || !residentId) {
+    if (!fullName || !phone || visitorFor || !residentId) {
       return res.status(400).json({ success: false, message: "All details are mandatory" });
     }
 
