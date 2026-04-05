@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
+import { useDispatch } from "react-redux";
+import { setUser } from "../../features/auth/authSlice";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import axios from "axios";
@@ -95,9 +97,8 @@ const ResidentLogin = () => {
       );
 
       if (response.data.success) {
-        localStorage.setItem("user", JSON.stringify(response.data.user));
-        alert("Login successful!");
-        navigate("/resident/dashboard");
+        dispatch(setUser(response.data.user))
+                navigate("/admin/dashboard");
       } else {
         alert(response.data.message);
       }
