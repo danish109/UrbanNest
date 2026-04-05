@@ -1,0 +1,22 @@
+
+# ========================
+# Python (ML Module)
+# ========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+env/
+.venv/
+detections.csv
+# Jupyter
+.ipynb_checkpoints/
+
+# ========================
+# Misc
+# ========================
+coverage/
+.cache/
