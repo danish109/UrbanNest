@@ -97,8 +97,9 @@ const ResidentLogin = () => {
       );
 
       if (response.data.success) {
-        dispatch(setUser(response.data.user))
-                navigate("/admin/dashboard");
+        localStorage.setItem("user", JSON.stringify(response.data.user));
+        alert("Login successful!");
+        navigate("/resident/dashboard");
       } else {
         alert(response.data.message);
       }
