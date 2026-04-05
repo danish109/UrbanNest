@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -129,9 +128,11 @@ const Modal = ({ open, onClose, title, children }) => (
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl md:text-2xl font-bold text-[#0e2a4a]">{title}</h3>
-            <button 
-              onClick={onClose} 
+            <h3 className="text-xl md:text-2xl font-bold text-[#0e2a4a]">
+              {title}
+            </h3>
+            <button
+              onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
             >
               <FaTimes />
@@ -237,7 +238,7 @@ const SecurityDashboard = () => {
   });
 
   // Camera / photo state
-  const [addMode, setAddMode] = useState("manual"); 
+  const [addMode, setAddMode] = useState("manual");
   const [cameraActive, setCameraActive] = useState(false);
   const [capturedPhoto, setCapturedPhoto] = useState(null);
   const [capturedBlob, setCapturedBlob] = useState(null);
@@ -346,20 +347,40 @@ const SecurityDashboard = () => {
     }
   };
 
-  const startCamera = async () => {
+  
+const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
+        video: { facingMode: "environment", width: 640, height: 480 },
         audio: false,
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
       setCameraActive(true);
+      // Wait for video element to render after setCameraActive(true)
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(console.error);
+        }
+      }, 200);
     } catch (err) {
-      toast.error("Camera access denied");
+      // Try front camera if back camera fails
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
+        streamRef.current = stream;
+        setCameraActive(true);
+        setTimeout(() => {
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            videoRef.current.play().catch(console.error);
+          }
+        }, 200);
+      } catch {
+        toast.error("Camera access denied");
+      }
     }
   };
 
@@ -383,7 +404,9 @@ const SecurityDashboard = () => {
     fetch(dataUrl)
       .then((r) => r.blob())
       .then((blob) => {
-        setCapturedBlob(new File([blob], "visitor_capture.jpg", { type: "image/jpeg" }));
+        setCapturedBlob(
+          new File([blob], "visitor_capture.jpg", { type: "image/jpeg" }),
+        );
       });
     stopCamera();
     setPhotoSource("camera");
@@ -413,7 +436,12 @@ const SecurityDashboard = () => {
 
   const handleAddVisitor = async () => {
     try {
-      const photoFile = photoSource === "camera" ? capturedBlob : (photoSource === "upload" ? uploadedFile : null);
+      const photoFile =
+        photoSource === "camera"
+          ? capturedBlob
+          : photoSource === "upload"
+            ? uploadedFile
+            : null;
       const formData = new FormData();
       formData.append("fullName", addVisitorForm.fullName);
       formData.append("phone", addVisitorForm.phone);
@@ -425,18 +453,26 @@ const SecurityDashboard = () => {
       let block = addVisitorForm.block;
       if (!flatNo || !block) {
         const sel = residents.find((r) => r._id === addVisitorForm.residentId);
-        if (sel) { flatNo = sel.flatNo; block = sel.block; }
+        if (sel) {
+          flatNo = sel.flatNo;
+          block = sel.block;
+        }
       }
       formData.append("flatNo", flatNo);
       formData.append("block", block);
 
       if (addVisitorForm.vehicleType) {
-        formData.append("vehicleDetails", JSON.stringify([{
-          type: addVisitorForm.vehicleType,
-          model: addVisitorForm.vehicleModel,
-          color: addVisitorForm.vehicleColor,
-          registrationNumber: addVisitorForm.vehicleReg,
-        }]));
+        formData.append(
+          "vehicleDetails",
+          JSON.stringify([
+            {
+              type: addVisitorForm.vehicleType,
+              model: addVisitorForm.vehicleModel,
+              color: addVisitorForm.vehicleColor,
+              registrationNumber: addVisitorForm.vehicleReg,
+            },
+          ]),
+        );
       }
 
       if (photoFile) formData.append("photo", photoFile);
@@ -450,9 +486,17 @@ const SecurityDashboard = () => {
         toast.success("Visitor added successfully");
         closeAddVisitorModal();
         setAddVisitorForm({
-          fullName: "", phone: "", visitorFor: "", purpose: "General Visit",
-          flatNo: "", block: "", residentId: "", vehicleType: "",
-          vehicleModel: "", vehicleColor: "", vehicleReg: "",
+          fullName: "",
+          phone: "",
+          visitorFor: "",
+          purpose: "General Visit",
+          flatNo: "",
+          block: "",
+          residentId: "",
+          vehicleType: "",
+          vehicleModel: "",
+          vehicleColor: "",
+          vehicleReg: "",
         });
         fetchVisitors();
         fetchSecurityStats();
@@ -464,9 +508,17 @@ const SecurityDashboard = () => {
 
   const handleQRScan = async () => {
     try {
-      if (!qrForm.qrToken) { toast.error("QR token is required"); return; }
-      const photoFile = photoSource === "camera" ? capturedBlob : (photoSource === "upload" ? uploadedFile : null);
-      
+      if (!qrForm.qrToken) {
+        toast.error("QR token is required");
+        return;
+      }
+      const photoFile =
+        photoSource === "camera"
+          ? capturedBlob
+          : photoSource === "upload"
+            ? uploadedFile
+            : null;
+
       let res;
       if (photoFile) {
         const formData = new FormData();
@@ -480,19 +532,28 @@ const SecurityDashboard = () => {
           headers: { "Content-Type": "multipart/form-data" },
         });
       } else {
-        res = await axios.post(`${BASE}/qr/scan`, {
-          qrToken: qrForm.qrToken,
-          fullName: qrForm.fullName,
-          phone: qrForm.phone,
-          purpose: qrForm.purpose,
-        }, { withCredentials: true });
+        res = await axios.post(
+          `${BASE}/qr/scan`,
+          {
+            qrToken: qrForm.qrToken,
+            fullName: qrForm.fullName,
+            phone: qrForm.phone,
+            purpose: qrForm.purpose,
+          },
+          { withCredentials: true },
+        );
       }
 
       if (res.data.success) {
         toast.success("QR Check-in successful");
         setAddVisitorModal(false);
         clearPhoto();
-        setQrForm({ qrToken: "", fullName: "", phone: "", purpose: "General Visit" });
+        setQrForm({
+          qrToken: "",
+          fullName: "",
+          phone: "",
+          purpose: "General Visit",
+        });
         fetchVisitors();
         fetchSecurityStats();
       }
@@ -503,7 +564,9 @@ const SecurityDashboard = () => {
 
   const handleApproveVisitor = async (visitorId, action) => {
     try {
-      const r = await api("patch", `/guard/visitor/approve/${visitorId}`, { action });
+      const r = await api("patch", `/guard/visitor/approve/${visitorId}`, {
+        action,
+      });
       if (r.data.success) {
         toast.success(`Visitor ${action.toLowerCase()}d`);
         fetchVisitors();
@@ -531,8 +594,10 @@ const SecurityDashboard = () => {
   const search = (arr, keys) =>
     arr.filter((item) =>
       keys.some((k) =>
-        String(item[k] || "").toLowerCase().includes(searchTerm.toLowerCase())
-      )
+        String(item[k] || "")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()),
+      ),
     );
 
   const paginate = (data) => {
@@ -591,21 +656,34 @@ const SecurityDashboard = () => {
     return visitors;
   };
 
-  const filteredData = search(getTabData(), ["fullName", "phone", "flatNo", "block", "visitorFor", "purpose", "status"]);
+  const filteredData = search(getTabData(), [
+    "fullName",
+    "phone",
+    "flatNo",
+    "block",
+    "visitorFor",
+    "purpose",
+    "status",
+  ]);
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 relative overflow-hidden">
       <ToastContainer position="top-right" theme="light" autoClose={3000} />
 
       {/* Navbar */}
-      <motion.nav 
+      <motion.nav
         className="bg-[#0e2a4a] text-white shadow-xl z-[60] sticky top-0"
-        initial={{ y: -100 }} animate={{ y: 0 }}
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
       >
         <div className="max-w-screen-2xl mx-auto px-4 md:px-8 py-3 flex justify-between items-center">
           <Link to="/" className="flex items-center gap-2 md:gap-3">
             <div className="h-10 w-10 md:h-12 md:w-12 rounded-xl overflow-hidden bg-[#ffb703]/20 flex items-center justify-center shrink-0">
-              <img src={logo} alt="Logo" className="w-full h-full object-cover" />
+              <img
+                src={logo}
+                alt="Logo"
+                className="w-full h-full object-cover"
+              />
             </div>
             <span className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
               UrbanNest
@@ -613,21 +691,33 @@ const SecurityDashboard = () => {
           </Link>
 
           <div className="hidden lg:flex items-center gap-4">
-            <GoldBtn onClick={() => setAddVisitorModal(true)} className="!py-2 !text-sm">
+            <GoldBtn
+              onClick={() => setAddVisitorModal(true)}
+              className="!py-2 !text-sm"
+            >
               <FaUserPlus /> Add Visitor
             </GoldBtn>
-            <button 
-              onClick={() => { setAddMode("qr"); setAddVisitorModal(true); }}
+            <button
+              onClick={() => {
+                setAddMode("qr");
+                setAddVisitorModal(true);
+              }}
               className="flex items-center gap-2 px-4 py-2 bg-purple-500/20 text-purple-300 border border-purple-400/30 rounded-xl hover:bg-purple-500/30 transition-all text-sm font-semibold"
             >
               <FaQrcode /> Scan QR
             </button>
-            <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-xl transition-all text-sm font-semibold">
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-xl transition-all text-sm font-semibold"
+            >
               <FaSignOutAlt /> Logout
             </button>
           </div>
 
-          <button onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden p-2 text-2xl">
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="lg:hidden p-2 text-2xl"
+          >
             {mobileOpen ? <FaTimes /> : <FaBars />}
           </button>
         </div>
@@ -649,10 +739,14 @@ const SecurityDashboard = () => {
                   <FaShieldAlt className="text-[#ffb703] text-xl" />
                   <h1 className="font-bold text-lg">Guard Portal</h1>
                 </div>
-                <p className="text-xs text-gray-500 font-medium">{guardUser?.fullName || "Security Guard"}</p>
+                <p className="text-xs text-gray-500 font-medium">
+                  {guardUser?.fullName || "Security Guard"}
+                </p>
                 <div className="mt-4 flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-lg w-fit">
                   <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  <span className="text-[10px] font-bold text-green-600 uppercase">On Duty</span>
+                  <span className="text-[10px] font-bold text-green-600 uppercase">
+                    On Duty
+                  </span>
                 </div>
               </div>
 
@@ -661,16 +755,25 @@ const SecurityDashboard = () => {
                   {sidebarItems.map((item) => (
                     <li key={item.key}>
                       <button
-                        onClick={() => { setActiveTab(item.key); setMobileOpen(false); setCurrentPage(1); }}
+                        onClick={() => {
+                          setActiveTab(item.key);
+                          setMobileOpen(false);
+                          setCurrentPage(1);
+                        }}
                         className={`w-full flex items-center p-3.5 rounded-xl transition-all font-semibold text-sm ${activeTab === item.key ? "bg-[#ffb703] text-[#0e2a4a] shadow-md" : "text-gray-600 hover:bg-gray-50"}`}
                       >
                         <item.icon className="mr-3 text-lg" />
                         {item.label}
-                        {item.key === "pending" && pendingVisitors.length > 0 && (
-                          <span className="ml-auto bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">{pendingVisitors.length}</span>
-                        )}
+                        {item.key === "pending" &&
+                          pendingVisitors.length > 0 && (
+                            <span className="ml-auto bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">
+                              {pendingVisitors.length}
+                            </span>
+                          )}
                         {item.key === "inside" && insideVisitors.length > 0 && (
-                          <span className="ml-auto bg-green-500 text-white text-[10px] px-2 py-0.5 rounded-full">{insideVisitors.length}</span>
+                          <span className="ml-auto bg-green-500 text-white text-[10px] px-2 py-0.5 rounded-full">
+                            {insideVisitors.length}
+                          </span>
                         )}
                       </button>
                     </li>
@@ -678,11 +781,19 @@ const SecurityDashboard = () => {
                 </ul>
 
                 <div className="mt-8 lg:hidden space-y-3">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2">Quick Actions</p>
-                  <GoldBtn onClick={() => setAddVisitorModal(true)} className="w-full">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2">
+                    Quick Actions
+                  </p>
+                  <GoldBtn
+                    onClick={() => setAddVisitorModal(true)}
+                    className="w-full"
+                  >
                     <FaUserPlus /> Add Visitor
                   </GoldBtn>
-                  <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 p-3 bg-red-50 text-red-600 rounded-xl font-bold text-sm">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center justify-center gap-2 p-3 bg-red-50 text-red-600 rounded-xl font-bold text-sm"
+                  >
                     <FaSignOutAlt /> Logout
                   </button>
                 </div>
@@ -697,15 +808,21 @@ const SecurityDashboard = () => {
           <header className="bg-white border-b border-gray-200 p-4 md:p-6 shrink-0">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <h2 className="text-xl md:text-2xl font-bold text-[#0e2a4a] capitalize">
-                {sidebarItems.find(s => s.key === activeTab)?.label || "Dashboard"}
+                {sidebarItems.find((s) => s.key === activeTab)?.label ||
+                  "Dashboard"}
               </h2>
               {activeTab !== "dashboard" && (
                 <div className="relative w-full md:w-80">
                   <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
-                    type="text" placeholder="Search records..."
+                    type="text"
+                    placeholder="Search records..."
                     className="w-full pl-11 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ffb703] outline-none transition-all text-sm"
-                    value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1);
+                    }}
                   />
                 </div>
               )}
@@ -721,16 +838,43 @@ const SecurityDashboard = () => {
                   <p className="font-semibold">Syncing Security Data...</p>
                 </div>
               ) : (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} key={activeTab}>
-                  
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  key={activeTab}
+                >
                   {activeTab === "dashboard" && (
                     <div className="space-y-8">
                       {/* Stats Grid */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                        <DashboardCard title="Today's Total" value={securityStats?.counts?.todayTotal ?? "0"} icon={<FaUsers className="text-xl md:text-2xl"/>} color="from-blue-600 to-blue-700" sub="Check-ins today" />
-                        <DashboardCard title="Inside Now" value={securityStats?.counts?.insideCount ?? "0"} icon={<FaDoorOpen className="text-xl md:text-2xl"/>} color="from-green-600 to-green-700" sub="Active visitors" />
-                        <DashboardCard title="Pending" value={securityStats?.counts?.pendingCount ?? "0"} icon={<FaClock className="text-xl md:text-2xl"/>} color="from-orange-500 to-orange-600" sub="Awaiting approval" />
-                        <DashboardCard title="System Status" value="Online" icon={<FaShieldAlt className="text-xl md:text-2xl"/>} color="from-[#0e2a4a] to-[#1a4b7a]" sub="All gates active" />
+                        <DashboardCard
+                          title="Today's Total"
+                          value={securityStats?.counts?.todayTotal ?? "0"}
+                          icon={<FaUsers className="text-xl md:text-2xl" />}
+                          color="from-blue-600 to-blue-700"
+                          sub="Check-ins today"
+                        />
+                        <DashboardCard
+                          title="Inside Now"
+                          value={securityStats?.counts?.insideCount ?? "0"}
+                          icon={<FaDoorOpen className="text-xl md:text-2xl" />}
+                          color="from-green-600 to-green-700"
+                          sub="Active visitors"
+                        />
+                        <DashboardCard
+                          title="Pending"
+                          value={securityStats?.counts?.pendingCount ?? "0"}
+                          icon={<FaClock className="text-xl md:text-2xl" />}
+                          color="from-orange-500 to-orange-600"
+                          sub="Awaiting approval"
+                        />
+                        <DashboardCard
+                          title="System Status"
+                          value="Online"
+                          icon={<FaShieldAlt className="text-xl md:text-2xl" />}
+                          color="from-[#0e2a4a] to-[#1a4b7a]"
+                          sub="All gates active"
+                        />
                       </div>
 
                       {/* Split View for Desktop / Stacked for Mobile */}
@@ -738,25 +882,50 @@ const SecurityDashboard = () => {
                         {/* Inside List */}
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                           <div className="p-4 bg-green-600 text-white flex justify-between items-center">
-                            <h3 className="font-bold flex items-center gap-2"><FaDoorOpen/> Live Inside</h3>
-                            <span className="text-xs bg-white/20 px-2 py-1 rounded-lg">{securityStats?.counts?.insideCount ?? 0}</span>
+                            <h3 className="font-bold flex items-center gap-2">
+                              <FaDoorOpen /> Live Inside
+                            </h3>
+                            <span className="text-xs bg-white/20 px-2 py-1 rounded-lg">
+                              {securityStats?.counts?.insideCount ?? 0}
+                            </span>
                           </div>
                           <div className="max-h-[400px] overflow-y-auto divide-y divide-gray-100">
                             {securityStats?.currentlyInside?.length > 0 ? (
-                              securityStats.currentlyInside.map(v => (
-                                <div key={v._id} className="p-4 flex justify-between items-center hover:bg-gray-50">
+                              securityStats.currentlyInside.map((v) => (
+                                <div
+                                  key={v._id}
+                                  className="p-4 flex justify-between items-center hover:bg-gray-50"
+                                >
                                   <div>
-                                    <p className="font-bold text-sm text-[#0e2a4a]">{v.fullName}</p>
-                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-tight">{v.block}-{v.flatNo} • {v.purpose}</p>
+                                    <p className="font-bold text-sm text-[#0e2a4a]">
+                                      {v.fullName}
+                                    </p>
+                                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-tight">
+                                      {v.block}-{v.flatNo} • {v.purpose}
+                                    </p>
                                   </div>
                                   <div className="text-right">
-                                    <p className="text-[10px] text-gray-400 font-medium">{v.entryTime ? formatDistanceToNow(new Date(v.entryTime), {addSuffix: true}) : "Just now"}</p>
-                                    <span className="text-[9px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded font-bold">{v.approvalMethod}</span>
+                                    <p className="text-[10px] text-gray-400 font-medium">
+                                      {v.entryTime
+                                        ? formatDistanceToNow(
+                                            new Date(v.entryTime),
+                                            { addSuffix: true },
+                                          )
+                                        : "Just now"}
+                                    </p>
+                                    <span className="text-[9px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded font-bold">
+                                      {v.approvalMethod}
+                                    </span>
                                   </div>
                                 </div>
                               ))
                             ) : (
-                              <div className="p-12 text-center text-gray-400"><FaDoorClosed className="mx-auto text-3xl mb-2 opacity-20"/> <p className="text-sm font-medium">No one is inside right now</p></div>
+                              <div className="p-12 text-center text-gray-400">
+                                <FaDoorClosed className="mx-auto text-3xl mb-2 opacity-20" />{" "}
+                                <p className="text-sm font-medium">
+                                  No one is inside right now
+                                </p>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -764,25 +933,55 @@ const SecurityDashboard = () => {
                         {/* Pending List */}
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                           <div className="p-4 bg-orange-500 text-white flex justify-between items-center">
-                            <h3 className="font-bold flex items-center gap-2"><FaClock/> Waiting Approval</h3>
-                            <span className="text-xs bg-white/20 px-2 py-1 rounded-lg">{securityStats?.counts?.pendingCount ?? 0}</span>
+                            <h3 className="font-bold flex items-center gap-2">
+                              <FaClock /> Waiting Approval
+                            </h3>
+                            <span className="text-xs bg-white/20 px-2 py-1 rounded-lg">
+                              {securityStats?.counts?.pendingCount ?? 0}
+                            </span>
                           </div>
                           <div className="max-h-[400px] overflow-y-auto divide-y divide-gray-100">
                             {securityStats?.pendingApprovals?.length > 0 ? (
-                              securityStats.pendingApprovals.map(v => (
-                                <div key={v._id} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:bg-gray-50">
+                              securityStats.pendingApprovals.map((v) => (
+                                <div
+                                  key={v._id}
+                                  className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:bg-gray-50"
+                                >
                                   <div>
-                                    <p className="font-bold text-sm text-[#0e2a4a]">{v.fullName}</p>
-                                    <p className="text-[10px] text-gray-500 font-medium">Flat {v.block}-{v.flatNo} • {v.phone}</p>
+                                    <p className="font-bold text-sm text-[#0e2a4a]">
+                                      {v.fullName}
+                                    </p>
+                                    <p className="text-[10px] text-gray-500 font-medium">
+                                      Flat {v.block}-{v.flatNo} • {v.phone}
+                                    </p>
                                   </div>
                                   <div className="flex gap-2 w-full sm:w-auto">
-                                    <button onClick={() => handleApproveVisitor(v._id, "APPROVE")} className="flex-1 sm:flex-none px-3 py-1.5 bg-green-500 text-white text-[10px] font-bold rounded-lg uppercase tracking-wider shadow-sm">Allow</button>
-                                    <button onClick={() => handleApproveVisitor(v._id, "REJECT")} className="flex-1 sm:flex-none px-3 py-1.5 bg-red-500 text-white text-[10px] font-bold rounded-lg uppercase tracking-wider shadow-sm">Deny</button>
+                                    <button
+                                      onClick={() =>
+                                        handleApproveVisitor(v._id, "APPROVE")
+                                      }
+                                      className="flex-1 sm:flex-none px-3 py-1.5 bg-green-500 text-white text-[10px] font-bold rounded-lg uppercase tracking-wider shadow-sm"
+                                    >
+                                      Allow
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleApproveVisitor(v._id, "REJECT")
+                                      }
+                                      className="flex-1 sm:flex-none px-3 py-1.5 bg-red-500 text-white text-[10px] font-bold rounded-lg uppercase tracking-wider shadow-sm"
+                                    >
+                                      Deny
+                                    </button>
                                   </div>
                                 </div>
                               ))
                             ) : (
-                              <div className="p-12 text-center text-gray-400"><FaCheckCircle className="mx-auto text-3xl mb-2 opacity-20"/> <p className="text-sm font-medium">Log is all cleared</p></div>
+                              <div className="p-12 text-center text-gray-400">
+                                <FaCheckCircle className="mx-auto text-3xl mb-2 opacity-20" />{" "}
+                                <p className="text-sm font-medium">
+                                  Log is all cleared
+                                </p>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -791,44 +990,83 @@ const SecurityDashboard = () => {
                       {/* Responsive Table Wrapper */}
                       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                         <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row justify-between gap-4">
-                          <h3 className="font-bold text-[#0e2a4a] flex items-center gap-2"><FaClipboardList/> Today's Activity Log</h3>
+                          <h3 className="font-bold text-[#0e2a4a] flex items-center gap-2">
+                            <FaClipboardList /> Today's Activity Log
+                          </h3>
                         </div>
                         <div className="overflow-x-auto">
                           <table className="w-full text-left border-collapse">
                             <thead className="bg-gray-50 border-b border-gray-100">
                               <tr>
-                                {["Visitor", "Flat", "Status", "Time", "Action"].map(h => (
-                                  <th key={h} className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{h}</th>
+                                {[
+                                  "Visitor",
+                                  "Flat",
+                                  "Status",
+                                  "Time",
+                                  "Action",
+                                ].map((h) => (
+                                  <th
+                                    key={h}
+                                    className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest"
+                                  >
+                                    {h}
+                                  </th>
                                 ))}
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                              {securityStats?.todayVisitors?.slice(0, 8).map(v => (
-                                <tr key={v._id} className="hover:bg-gray-50/50 transition-colors">
-                                  <td className="px-6 py-4">
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs uppercase shrink-0">
-                                        {v.fullName.charAt(0)}
+                              {securityStats?.todayVisitors
+                                ?.slice(0, 8)
+                                .map((v) => (
+                                  <tr
+                                    key={v._id}
+                                    className="hover:bg-gray-50/50 transition-colors"
+                                  >
+                                    <td className="px-6 py-4">
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs uppercase shrink-0">
+                                          {v.fullName.charAt(0)}
+                                        </div>
+                                        <span className="text-sm font-bold text-gray-700 truncate max-w-[120px]">
+                                          {v.fullName}
+                                        </span>
                                       </div>
-                                      <span className="text-sm font-bold text-gray-700 truncate max-w-[120px]">{v.fullName}</span>
-                                    </div>
-                                  </td>
-                                  <td className="px-6 py-4 text-xs font-semibold text-gray-500">{v.block}-{v.flatNo}</td>
-                                  <td className="px-6 py-4">
-                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${StatusColors[v.status] || "bg-gray-100 text-gray-400"}`}>
-                                      {v.status.replace('_', ' ')}
-                                    </span>
-                                  </td>
-                                  <td className="px-6 py-4 text-xs text-gray-400">{v.entryTime ? format(new Date(v.entryTime), "hh:mm a") : "—"}</td>
-                                  <td className="px-6 py-4">
-                                    <button onClick={() => setVisitorDetailModal(v)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"><FaEye/></button>
-                                  </td>
-                                </tr>
-                              ))}
+                                    </td>
+                                    <td className="px-6 py-4 text-xs font-semibold text-gray-500">
+                                      {v.block}-{v.flatNo}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                      <span
+                                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${StatusColors[v.status] || "bg-gray-100 text-gray-400"}`}
+                                      >
+                                        {v.status.replace("_", " ")}
+                                      </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-xs text-gray-400">
+                                      {v.entryTime
+                                        ? format(
+                                            new Date(v.entryTime),
+                                            "hh:mm a",
+                                          )
+                                        : "—"}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                      <button
+                                        onClick={() => setVisitorDetailModal(v)}
+                                        className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                                      >
+                                        <FaEye />
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
                             </tbody>
                           </table>
-                          {(!securityStats?.todayVisitors || securityStats.todayVisitors.length === 0) && (
-                            <div className="p-12 text-center text-gray-400">No data logged today</div>
+                          {(!securityStats?.todayVisitors ||
+                            securityStats.todayVisitors.length === 0) && (
+                            <div className="p-12 text-center text-gray-400">
+                              No data logged today
+                            </div>
                           )}
                         </div>
                       </div>
@@ -840,72 +1078,137 @@ const SecurityDashboard = () => {
                     <div className="space-y-6">
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div className="flex items-center gap-4 w-full sm:w-auto overflow-x-auto pb-1">
-                          <select 
+                          <select
                             className="bg-white border border-gray-200 px-3 py-2 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-[#ffb703]"
-                            value={statusFilter} onChange={(e) => {setStatusFilter(e.target.value); setCurrentPage(1);}}
+                            value={statusFilter}
+                            onChange={(e) => {
+                              setStatusFilter(e.target.value);
+                              setCurrentPage(1);
+                            }}
                           >
                             <option value="">Status: All</option>
                             <option value="PENDING">Pending</option>
                             <option value="CHECKED_IN">Inside</option>
                             <option value="CHECKED_OUT">Exited</option>
                           </select>
-                          <input 
-                            type="date" className="bg-white border border-gray-200 px-3 py-2 rounded-xl text-xs font-bold"
-                            value={dateFilter} onChange={(e) => {setDateFilter(e.target.value); setCurrentPage(1);}}
+                          <input
+                            type="date"
+                            className="bg-white border border-gray-200 px-3 py-2 rounded-xl text-xs font-bold"
+                            value={dateFilter}
+                            onChange={(e) => {
+                              setDateFilter(e.target.value);
+                              setCurrentPage(1);
+                            }}
                           />
                         </div>
                         <div className="flex gap-2 w-full sm:w-auto">
-                          <GoldBtn onClick={() => setAddVisitorModal(true)} className="flex-1 !py-2 !text-xs"><FaUserPlus/> Add</GoldBtn>
-                          <button onClick={() => {setAddMode("qr"); setAddVisitorModal(true);}} className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold shadow-sm"><FaQrcode/> Scan</button>
+                          <GoldBtn
+                            onClick={() => setAddVisitorModal(true)}
+                            className="flex-1 !py-2 !text-xs"
+                          >
+                            <FaUserPlus /> Add
+                          </GoldBtn>
+                          <button
+                            onClick={() => {
+                              setAddMode("qr");
+                              setAddVisitorModal(true);
+                            }}
+                            className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold shadow-sm"
+                          >
+                            <FaQrcode /> Scan
+                          </button>
                         </div>
                       </div>
 
                       {/* Card-based List for Mobile/Tablet */}
                       <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4">
                         {paginate(filteredData).map((v, i) => (
-                          <motion.div 
-                            key={v._id} 
+                          <motion.div
+                            key={v._id}
                             className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col"
                             whileHover={{ y: -2 }}
                           >
                             <div className="flex justify-between items-start mb-4">
                               <div className="flex items-center gap-3">
                                 {v.photo?.url ? (
-                                  <img src={v.photo.url} className="w-12 h-12 rounded-full object-cover border-2 border-gray-100" />
+                                  <img
+                                    src={v.photo.url}
+                                    className="w-12 h-12 rounded-full object-cover border-2 border-gray-100"
+                                  />
                                 ) : (
-                                  <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-black text-lg">{v.fullName.charAt(0)}</div>
+                                  <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-black text-lg">
+                                    {v.fullName.charAt(0)}
+                                  </div>
                                 )}
                                 <div>
-                                  <h4 className="font-bold text-gray-800 text-sm">{v.fullName}</h4>
-                                  <p className="text-[10px] text-gray-400 font-bold uppercase">{v.phone}</p>
+                                  <h4 className="font-bold text-gray-800 text-sm">
+                                    {v.fullName}
+                                  </h4>
+                                  <p className="text-[10px] text-gray-400 font-bold uppercase">
+                                    {v.phone}
+                                  </p>
                                 </div>
                               </div>
-                              <span className={`text-[9px] px-2 py-0.5 rounded font-black uppercase ${StatusColors[v.status] || "bg-gray-100"}`}>
-                                {v.status.replace('_', ' ')}
+                              <span
+                                className={`text-[9px] px-2 py-0.5 rounded font-black uppercase ${StatusColors[v.status] || "bg-gray-100"}`}
+                              >
+                                {v.status.replace("_", " ")}
                               </span>
                             </div>
 
                             <div className="grid grid-cols-2 gap-3 mb-5 border-y border-gray-50 py-3">
                               <div>
-                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Flat/Block</p>
-                                <p className="text-xs font-black text-gray-700">{v.block} - {v.flatNo}</p>
+                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">
+                                  Flat/Block
+                                </p>
+                                <p className="text-xs font-black text-gray-700">
+                                  {v.block} - {v.flatNo}
+                                </p>
                               </div>
                               <div>
-                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Approval</p>
-                                <p className="text-xs font-black text-purple-600">{v.approvalMethod}</p>
+                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">
+                                  Approval
+                                </p>
+                                <p className="text-xs font-black text-purple-600">
+                                  {v.approvalMethod}
+                                </p>
                               </div>
                             </div>
 
                             <div className="flex gap-2 mt-auto">
-                              <button onClick={() => setVisitorDetailModal(v)} className="flex-1 py-2 bg-gray-50 text-gray-600 text-[10px] font-bold rounded-lg uppercase hover:bg-gray-100">Details</button>
+                              <button
+                                onClick={() => setVisitorDetailModal(v)}
+                                className="flex-1 py-2 bg-gray-50 text-gray-600 text-[10px] font-bold rounded-lg uppercase hover:bg-gray-100"
+                              >
+                                Details
+                              </button>
                               {v.status === "PENDING" && (
                                 <>
-                                  <button onClick={() => handleApproveVisitor(v._id, "APPROVE")} className="flex-1 py-2 bg-green-500 text-white text-[10px] font-bold rounded-lg uppercase tracking-widest shadow-sm">Allow</button>
-                                  <button onClick={() => handleApproveVisitor(v._id, "REJECT")} className="flex-1 py-2 bg-red-500 text-white text-[10px] font-bold rounded-lg uppercase tracking-widest shadow-sm">Deny</button>
+                                  <button
+                                    onClick={() =>
+                                      handleApproveVisitor(v._id, "APPROVE")
+                                    }
+                                    className="flex-1 py-2 bg-green-500 text-white text-[10px] font-bold rounded-lg uppercase tracking-widest shadow-sm"
+                                  >
+                                    Allow
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      handleApproveVisitor(v._id, "REJECT")
+                                    }
+                                    className="flex-1 py-2 bg-red-500 text-white text-[10px] font-bold rounded-lg uppercase tracking-widest shadow-sm"
+                                  >
+                                    Deny
+                                  </button>
                                 </>
                               )}
                               {v.status === "CHECKED_IN" && (
-                                <button onClick={() => handleMarkExit(v._id)} className="flex-1 py-2 bg-orange-500 text-white text-[10px] font-bold rounded-lg uppercase tracking-widest shadow-sm">Mark Exit</button>
+                                <button
+                                  onClick={() => handleMarkExit(v._id)}
+                                  className="flex-1 py-2 bg-orange-500 text-white text-[10px] font-bold rounded-lg uppercase tracking-widest shadow-sm"
+                                >
+                                  Mark Exit
+                                </button>
                               )}
                             </div>
                           </motion.div>
@@ -930,133 +1233,279 @@ const SecurityDashboard = () => {
       </div>
 
       {/* ── MODALS ──────────────────────────────────────────────────────────── */}
-      
+
       {/* Add Visitor Modal */}
-      <Modal open={addVisitorModal} onClose={closeAddVisitorModal} title={addMode === "manual" ? "Add Visitor" : "QR Entry Scan"}>
+      <Modal
+        open={addVisitorModal}
+        onClose={closeAddVisitorModal}
+        title={addMode === "manual" ? "Add Visitor" : "QR Entry Scan"}
+      >
         <canvas ref={canvasRef} className="hidden" />
-        
+
         {/* Toggle UI */}
         <div className="flex bg-gray-100 p-1 rounded-xl mb-6">
-          <button 
-            onClick={() => setAddMode("manual")} 
+          <button
+            onClick={() => setAddMode("manual")}
             className={`flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all ${addMode === "manual" ? "bg-white shadow text-[#0e2a4a]" : "text-gray-400"}`}
-          >Manual</button>
-          <button 
-            onClick={() => setAddMode("qr")} 
+          >
+            Manual
+          </button>
+          <button
+            onClick={() => setAddMode("qr")}
             className={`flex-1 py-2 text-xs font-black uppercase tracking-wider rounded-lg transition-all ${addMode === "qr" ? "bg-white shadow text-purple-600" : "text-gray-400"}`}
-          >QR Scan</button>
+          >
+            QR Scan
+          </button>
         </div>
 
         {addMode === "manual" ? (
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <InputField label="Full Name *" placeholder="Enter name" value={addVisitorForm.fullName} onChange={(e) => setAddVisitorForm({...addVisitorForm, fullName: e.target.value})} />
-              <InputField label="Phone Number *" placeholder="Enter 10-digit number" value={addVisitorForm.phone} onChange={(e) => setAddVisitorForm({...addVisitorForm, phone: e.target.value})} />
+              <InputField
+                label="Full Name *"
+                placeholder="Enter name"
+                value={addVisitorForm.fullName}
+                onChange={(e) =>
+                  setAddVisitorForm({
+                    ...addVisitorForm,
+                    fullName: e.target.value,
+                  })
+                }
+              />
+              <InputField
+                label="Phone Number *"
+                placeholder="Enter 10-digit number"
+                value={addVisitorForm.phone}
+                onChange={(e) =>
+                  setAddVisitorForm({
+                    ...addVisitorForm,
+                    phone: e.target.value,
+                  })
+                }
+              />
             </div>
-            
+
             <div className="w-full">
-              <label className="block text-sm font-semibold mb-1.5 text-gray-700">Resident to Visit *</label>
-              <select 
+              <label className="block text-sm font-semibold mb-1.5 text-gray-700">
+                Resident to Visit *
+              </label>
+              <select
                 className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#ffb703] outline-none"
-                value={addVisitorForm.residentId} 
+                value={addVisitorForm.residentId}
                 onChange={(e) => {
-  const sel = residents.find(r => r._id === e.target.value);
-  setAddVisitorForm({
-    ...addVisitorForm, 
-    residentId: e.target.value, 
-    flatNo: sel?.flatNo || "", 
-    block: sel?.block || "", 
-    visitorFor: sel?.fullName || sel?.name || e.target.value || ""
-  });
-}}
+                  const sel = residents.find((r) => r._id === e.target.value);
+                  setAddVisitorForm({
+                    ...addVisitorForm,
+                    residentId: e.target.value,
+                    flatNo: sel?.flatNo || "",
+                    block: sel?.block || "",
+                    visitorFor:
+                      sel?.fullName || sel?.name || e.target.value || "",
+                  });
+                }}
               >
                 <option value="">Search & Select Resident</option>
-                {residents.map(r => (
-                  <option key={r._id} value={r._id}>{r.fullName} ({r.block}-{r.flatNo})</option>
+                {residents.map((r) => (
+                  <option key={r._id} value={r._id}>
+                    {r.fullName} ({r.block}-{r.flatNo})
+                  </option>
                 ))}
               </select>
             </div>
 
-            <InputField label="Purpose of Visit" placeholder="e.g. Courier, Relative" value={addVisitorForm.purpose} onChange={(e) => setAddVisitorForm({...addVisitorForm, purpose: e.target.value})} />
+            <InputField
+              label="Purpose of Visit"
+              placeholder="e.g. Courier, Relative"
+              value={addVisitorForm.purpose}
+              onChange={(e) =>
+                setAddVisitorForm({
+                  ...addVisitorForm,
+                  purpose: e.target.value,
+                })
+              }
+            />
 
             {/* Photo Capture Section */}
             <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Identity Capture</p>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+                Identity Capture
+              </p>
               {capturedPhoto ? (
                 <div className="flex items-center gap-4">
-                  <img src={capturedPhoto} className="w-20 h-20 rounded-xl object-cover border-2 border-[#ffb703]" />
-                  <button onClick={retakePhoto} className="text-xs font-bold text-blue-600 flex items-center gap-1"><FaRedo/> Redo</button>
+                  <img
+                    src={capturedPhoto}
+                    className="w-20 h-20 rounded-xl object-cover border-2 border-[#ffb703]"
+                  />
+                  <button
+                    onClick={retakePhoto}
+                    className="text-xs font-bold text-blue-600 flex items-center gap-1"
+                  >
+                    <FaRedo /> Redo
+                  </button>
                 </div>
               ) : cameraActive ? (
                 <div className="space-y-3">
-                  <video ref={videoRef} autoPlay playsInline muted className="w-full aspect-video rounded-xl object-cover bg-black" />
-                  <GoldBtn onClick={capturePhoto} className="w-full"><FaCamera/> Click to Capture</GoldBtn>
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full aspect-video rounded-xl object-cover bg-black"
+                  />
+                  <GoldBtn onClick={capturePhoto} className="w-full">
+                    <FaCamera /> Click to Capture
+                  </GoldBtn>
                 </div>
               ) : (
                 <div className="flex gap-2">
-                  <button onClick={startCamera} className="flex-1 py-3 bg-[#0e2a4a] text-white text-xs font-bold rounded-xl uppercase tracking-widest"><FaVideo className="inline mr-2"/> Camera</button>
+                  <button
+                    onClick={startCamera}
+                    className="flex-1 py-3 bg-[#0e2a4a] text-white text-xs font-bold rounded-xl uppercase tracking-widest"
+                  >
+                    <FaVideo className="inline mr-2" /> Camera
+                  </button>
                   <label className="flex-1">
-                    <div className="w-full py-3 bg-white border border-gray-200 text-gray-500 text-xs font-bold rounded-xl uppercase tracking-widest flex items-center justify-center cursor-pointer"><FaUpload className="inline mr-2"/> Gallery</div>
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { if(e.target.files[0]) { setUploadedFile(e.target.files[0]); setPhotoSource("upload"); setCapturedPhoto(URL.createObjectURL(e.target.files[0])); }}} />
+                    <div className="w-full py-3 bg-white border border-gray-200 text-gray-500 text-xs font-bold rounded-xl uppercase tracking-widest flex items-center justify-center cursor-pointer">
+                      <FaUpload className="inline mr-2" /> Gallery
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files[0]) {
+                          setUploadedFile(e.target.files[0]);
+                          setPhotoSource("upload");
+                          setCapturedPhoto(
+                            URL.createObjectURL(e.target.files[0]),
+                          );
+                        }
+                      }}
+                    />
                   </label>
                 </div>
               )}
             </div>
 
             <div className="pt-4 flex gap-3">
-              <button onClick={closeAddVisitorModal} className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-gray-400 uppercase tracking-widest text-xs">Cancel</button>
-              <GoldBtn onClick={handleAddVisitor} className="flex-[2]">Confirm Entry</GoldBtn>
+              <button
+                onClick={closeAddVisitorModal}
+                className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-gray-400 uppercase tracking-widest text-xs"
+              >
+                Cancel
+              </button>
+              <GoldBtn onClick={handleAddVisitor} className="flex-[2]">
+                Confirm Entry
+              </GoldBtn>
             </div>
           </div>
         ) : (
           <div className="space-y-4">
-            <QRScanner onScanSuccess={(text) => setQrForm({...qrForm, qrToken: text})} onClose={() => {}} />
-            <InputField label="Token Details" value={qrForm.qrToken} onChange={(e) => setQrForm({...qrForm, qrToken: e.target.value})} placeholder="Scan or manually enter token" />
+            <QRScanner
+              onScanSuccess={(text) => setQrForm({ ...qrForm, qrToken: text })}
+              onClose={() => {}}
+            />
+            <InputField
+              label="Token Details"
+              value={qrForm.qrToken}
+              onChange={(e) =>
+                setQrForm({ ...qrForm, qrToken: e.target.value })
+              }
+              placeholder="Scan or manually enter token"
+            />
             <div className="flex gap-3">
-               <button onClick={closeAddVisitorModal} className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-gray-400 uppercase tracking-widest text-xs">Close</button>
-               <button onClick={handleQRScan} className="flex-[2] py-3 bg-purple-600 text-white rounded-xl font-bold uppercase tracking-widest text-xs shadow-md">Verify QR Code</button>
+              <button
+                onClick={closeAddVisitorModal}
+                className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-gray-400 uppercase tracking-widest text-xs"
+              >
+                Close
+              </button>
+              <button
+                onClick={handleQRScan}
+                className="flex-[2] py-3 bg-purple-600 text-white rounded-xl font-bold uppercase tracking-widest text-xs shadow-md"
+              >
+                Verify QR Code
+              </button>
             </div>
           </div>
         )}
       </Modal>
 
       {/* Visitor Detail Modal */}
-      <Modal open={!!visitorDetailModal} onClose={() => setVisitorDetailModal(null)} title="Security Record">
+      <Modal
+        open={!!visitorDetailModal}
+        onClose={() => setVisitorDetailModal(null)}
+        title="Security Record"
+      >
         {visitorDetailModal && (
           <div className="space-y-6">
             <div className="flex items-center gap-5 p-4 bg-gray-50 rounded-2xl">
               {visitorDetailModal.photo?.url ? (
-                <img src={visitorDetailModal.photo.url} className="w-20 h-20 rounded-2xl object-cover border-2 border-[#ffb703] shadow-sm" />
+                <img
+                  src={visitorDetailModal.photo.url}
+                  className="w-20 h-20 rounded-2xl object-cover border-2 border-[#ffb703] shadow-sm"
+                />
               ) : (
-                <div className="w-20 h-20 rounded-2xl bg-[#0e2a4a] text-white flex items-center justify-center text-3xl font-black">{visitorDetailModal.fullName.charAt(0)}</div>
+                <div className="w-20 h-20 rounded-2xl bg-[#0e2a4a] text-white flex items-center justify-center text-3xl font-black">
+                  {visitorDetailModal.fullName.charAt(0)}
+                </div>
               )}
               <div>
-                <h4 className="text-xl font-black text-[#0e2a4a]">{visitorDetailModal.fullName}</h4>
-                <p className="text-sm text-gray-500 font-bold">{visitorDetailModal.phone}</p>
-                <span className={`mt-2 inline-block text-[9px] px-2 py-0.5 rounded font-black uppercase ${StatusColors[visitorDetailModal.status]}`}>{visitorDetailModal.status}</span>
+                <h4 className="text-xl font-black text-[#0e2a4a]">
+                  {visitorDetailModal.fullName}
+                </h4>
+                <p className="text-sm text-gray-500 font-bold">
+                  {visitorDetailModal.phone}
+                </p>
+                <span
+                  className={`mt-2 inline-block text-[9px] px-2 py-0.5 rounded font-black uppercase ${StatusColors[visitorDetailModal.status]}`}
+                >
+                  {visitorDetailModal.status}
+                </span>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               {[
-                { l: "Unit", v: `${visitorDetailModal.block}-${visitorDetailModal.flatNo}` },
+                {
+                  l: "Unit",
+                  v: `${visitorDetailModal.block}-${visitorDetailModal.flatNo}`,
+                },
                 { l: "Host", v: visitorDetailModal.visitorFor },
                 { l: "Reason", v: visitorDetailModal.purpose },
-                { l: "Arrival", v: visitorDetailModal.entryTime ? format(new Date(visitorDetailModal.entryTime), "hh:mm a") : "Pending" }
-              ].map(x => (
-                <div key={x.l} className="bg-white p-3 rounded-xl border border-gray-100">
-                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">{x.l}</p>
-                  <p className="text-xs font-black text-gray-700">{x.v || "N/A"}</p>
+                {
+                  l: "Arrival",
+                  v: visitorDetailModal.entryTime
+                    ? format(new Date(visitorDetailModal.entryTime), "hh:mm a")
+                    : "Pending",
+                },
+              ].map((x) => (
+                <div
+                  key={x.l}
+                  className="bg-white p-3 rounded-xl border border-gray-100"
+                >
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">
+                    {x.l}
+                  </p>
+                  <p className="text-xs font-black text-gray-700">
+                    {x.v || "N/A"}
+                  </p>
                 </div>
               ))}
             </div>
 
             {visitorDetailModal.vehicleDetails?.length > 0 && (
               <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Vehicle Info</p>
+                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                  Vehicle Info
+                </p>
                 {visitorDetailModal.vehicleDetails.map((vd, idx) => (
-                  <div key={idx} className="flex items-center gap-2 text-xs font-bold text-gray-700">
-                    <FaCar className="text-[#ffb703]" /> {vd.registrationNumber} ({vd.model} - {vd.color})
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2 text-xs font-bold text-gray-700"
+                  >
+                    <FaCar className="text-[#ffb703]" /> {vd.registrationNumber}{" "}
+                    ({vd.model} - {vd.color})
                   </div>
                 ))}
               </div>
@@ -1064,12 +1513,33 @@ const SecurityDashboard = () => {
 
             <div className="flex gap-3">
               {visitorDetailModal.status === "PENDING" && (
-                <GreenBtn onClick={() => {handleApproveVisitor(visitorDetailModal._id, "APPROVE"); setVisitorDetailModal(null);}} className="w-full py-4">Authorize Entry</GreenBtn>
+                <GreenBtn
+                  onClick={() => {
+                    handleApproveVisitor(visitorDetailModal._id, "APPROVE");
+                    setVisitorDetailModal(null);
+                  }}
+                  className="w-full py-4"
+                >
+                  Authorize Entry
+                </GreenBtn>
               )}
               {visitorDetailModal.status === "CHECKED_IN" && (
-                <button onClick={() => {handleMarkExit(visitorDetailModal._id); setVisitorDetailModal(null);}} className="w-full py-4 bg-orange-500 text-white rounded-xl font-bold uppercase tracking-widest text-xs shadow-lg">Confirm Exit</button>
+                <button
+                  onClick={() => {
+                    handleMarkExit(visitorDetailModal._id);
+                    setVisitorDetailModal(null);
+                  }}
+                  className="w-full py-4 bg-orange-500 text-white rounded-xl font-bold uppercase tracking-widest text-xs shadow-lg"
+                >
+                  Confirm Exit
+                </button>
               )}
-              <button onClick={() => setVisitorDetailModal(null)} className="flex-1 py-4 text-gray-400 font-bold uppercase text-[10px] tracking-widest">Back</button>
+              <button
+                onClick={() => setVisitorDetailModal(null)}
+                className="flex-1 py-4 text-gray-400 font-bold uppercase text-[10px] tracking-widest"
+              >
+                Back
+              </button>
             </div>
           </div>
         )}
