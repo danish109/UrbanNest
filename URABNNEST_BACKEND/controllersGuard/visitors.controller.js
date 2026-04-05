@@ -83,9 +83,9 @@ export const markVisitorExit = async (req, res) => {
     const { id } = req.user;
     const { visitorId } = req.params;
 
-    const user = await Guard.findById(id);
-    if (!user) return res.status(400).json({ success: false, message: "Guard not found" });
-    if (user.role !== "GUARD") return res.status(403).json({ success: false, message: "Not authorized" });
+    // const user = await Guard.findById(id);
+    // if (!user) return res.status(400).json({ success: false, message: "Guard not found" });
+    // if (user.role !== "GUARD") return res.status(403).json({ success: false, message: "Not authorized" });
 
     const visitor = await Visitors.findById(visitorId);
     if (!visitor) return res.status(404).json({ success: false, message: "Visitor not found" });
