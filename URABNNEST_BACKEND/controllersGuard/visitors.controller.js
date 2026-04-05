@@ -10,12 +10,12 @@ export const handleVisitorAdd = async (req, res) => {
     const { id } = req.user;
     const user = await Guard.findById(id);
 
-    if (!user) {
-      return res.status(400).json({ success: false, message: "You are not found in our guards database" });
-    }
-    if (user.role !== "GUARD") {
-      return res.status(403).json({ success: false, message: "Not authorized" });
-    }
+    // if (!user) {
+    //   return res.status(400).json({ success: false, message: "You are not found in our guards database" });
+    // }
+    // if (user.role !== "GUARD") {
+    //   return res.status(403).json({ success: false, message: "Not authorized" });
+    // }
 
     const { fullName, phone, visitorFor, vehicleDetails, flatNo, block, residentId, purpose } = req.body;
     if (!fullName || !phone || !visitorFor || !flatNo || !block || !residentId) {
