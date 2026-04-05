@@ -5,16 +5,20 @@
 import http from "http";
 import { Server } from "socket.io";
 
-const server = http.createServer();
+// REPLACE — pass a dummy handler, socket.io will attach later
+const server = http.createServer((req, res) => {
+  res.writeHead(200);
+});
+
+// REPLACE with this
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",")
+  : ["http://localhost:5173", "http://localhost:3000"];
 
 export const io = new Server(server, {
   cors: {
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:3000",
-      "*",
-    ],
-    methods: ["GET", "POST"],
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   },
 });

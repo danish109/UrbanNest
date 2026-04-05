@@ -1,50 +1,29 @@
-/**
- * NestMate - Application Entry Point
- * Starts Express API server and Socket.IO server
- */
 import app from "./index.js";
-import server, { io } from "./server.js";
+import { io } from "./server.js";
+import http from "http";
 
-const API_PORT = process.env.PORT || 8000;
-const SOCKET_PORT = process.env.SOCKET_PORT || 5000;
+const PORT = process.env.PORT || 5000;
 
-// Attach Socket.IO instance so controllers can emit events via req.app.get("io")
+// Create ONE http server that handles both Express and Socket.IO
+const httpServer = http.createServer(app);
+
+// Attach Socket.IO to the same server
+io.attach(httpServer);
+
+// Make io accessible in controllers
 app.set("io", io);
 
-// ── Start Express API Server ──────────────────────────────────
-const expressServer = app.listen(API_PORT, () => {
-  console.log("");
-  console.log("╔══════════════════════════════════════════════════════╗");
-  console.log("║           🏘️  NestMate Backend v2.0.0               ║");
-  console.log("╠══════════════════════════════════════════════════════╣");
-  console.log(`║  🚀 Express API      → http://localhost:${API_PORT}        ║`);
-  console.log(`║  🔌 Socket.IO        → ws://localhost:${SOCKET_PORT}         ║`);
-  console.log(`║  💬 Chat Namespace   → ws://localhost:${SOCKET_PORT}/chat    ║`);
-  console.log("╠══════════════════════════════════════════════════════╣");
-  console.log("║  ✅ /notifications   → Real-time alerts             ║");
-  console.log("║  ✅ /qr             → QR Visitor Pass System        ║");
-  console.log("║  ✅ /profile        → Resident Profile              ║");
-  console.log("║  ✅ /analytics      → Dashboard Stats               ║");
-  console.log("║  ✅ /guard          → Visitor + Face Capture        ║");
-  console.log("║  ✅ /resident       → Complaints + Comments         ║");
-  console.log("╚══════════════════════════════════════════════════════╝");
-  console.log("");
+httpServer.listen(PORT, () => {
+  console.log(`✅ NestMate running on port ${PORT}`);
+  console.log(`🚀 Express API + Socket.IO on same port`);
 });
 
-// ── Start Socket.IO Server ────────────────────────────────────
-server.listen(SOCKET_PORT, () => {
-  console.log(`✅ Socket.IO listening on port ${SOCKET_PORT}`);
-});
-
-// ── Graceful Shutdown ─────────────────────────────────────────
 const shutdown = (signal) => {
-  console.log(`\n📛 ${signal} received — shutting down gracefully...`);
-  expressServer.close(() => console.log("✅ Express server closed"));
-  server.close(() => console.log("✅ Socket.IO server closed"));
-  process.exit(0);
+  console.log(`${signal} received — shutting down...`);
+  httpServer.close(() => process.exit(0));
 };
 
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
 
-export { app, server, io };
+export { app, io };

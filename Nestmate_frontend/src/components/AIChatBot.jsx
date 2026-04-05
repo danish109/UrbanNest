@@ -59,7 +59,7 @@ const AIChatBot = () => {
     try {
       // Get JWT token from local storage (assuming you have auth implemented)
 
-      const response = await fetch("http://localhost:8000/ai/chat", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/ai/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

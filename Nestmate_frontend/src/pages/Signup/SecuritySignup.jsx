@@ -88,7 +88,7 @@ const GuardSignup = () => {
     setIsLoading(true);
     try {
       const response = await axios.post(
-        "http://localhost:8000/user/guard/signup",
+        `${import.meta.env.VITE_API_URL}/user/guard/signup`,
         {
           fullName: data.fullName,
           phone: data.phone,

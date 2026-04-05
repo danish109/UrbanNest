@@ -55,8 +55,8 @@ import { MdApartment, MdDashboard, MdPayment } from "react-icons/md";
 import { IoChatbubblesOutline } from "react-icons/io5";
 import QRCode from "qrcode";
 
-const BASE = "http://localhost:8000";
-const socket = io("http://localhost:5000"); // ✅ ADD THIS
+const BASE = `${import.meta.env.VITE_API_URL}`;
+const socket = io(`${import.meta.env.VITE_API_URL}`); // ✅ ADD THIS
 
 // ─── Color Maps ──────────────────────────────────────────────────────────────
 const PriorityColors = {

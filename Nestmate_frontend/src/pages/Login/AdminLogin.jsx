@@ -80,7 +80,7 @@ const AdminLogin = () => {
     setIsLoading(true);
     try {
       const response = await axios.post(
-        "http://localhost:8000/user/admin/login",
+        `${import.meta.env.VITE_API_URL}/user/admin/login`,
         {
           phone: data.phone,
           password: data.password,

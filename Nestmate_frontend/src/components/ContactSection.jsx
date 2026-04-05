@@ -28,7 +28,7 @@ const ContactSection = ({ isVisible }) => {
 
     try {
       await axios.post(
-        "http://localhost:8000/contact/send-message",
+        `${import.meta.env.VITE_API_URL}/contact/send-message`,
         {
           name: `${formData.firstName} ${formData.lastName}`,
           email: formData.email,

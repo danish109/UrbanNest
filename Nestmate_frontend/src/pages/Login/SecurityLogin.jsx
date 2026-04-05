@@ -76,7 +76,7 @@ const GuardLogin = () => {
     setIsLoading(true);
     try {
       const response = await axios.post(
-        "http://localhost:8000/user/guard/login",
+        `${import.meta.env.VITE_API_URL}/user/guard/login`,
         {
           phone: data.phone,
           password: data.password,

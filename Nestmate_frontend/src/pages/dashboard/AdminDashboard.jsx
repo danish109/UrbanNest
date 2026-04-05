@@ -42,7 +42,7 @@ import {
 import { MdApartment } from "react-icons/md";
 import { Link } from "react-router-dom";
 
-const BASE = "http://localhost:8000";
+const BASE = `${import.meta.env.VITE_API_URL}`;
 
 // ─── Color Maps ─────────────────────────────────────────────────────────────
 const PriorityColors = {

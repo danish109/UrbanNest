@@ -85,7 +85,7 @@ const ResidentLogin = () => {
     setIsLoading(true);
     try {
       const response = await axios.post(
-        "http://localhost:8000/user/resident/login",
+        `${import.meta.env.VITE_API_URL}/user/resident/login`,
         {
           phone: data.phone,
           password: data.password,

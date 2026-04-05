@@ -179,7 +179,7 @@ const [resendDisabled, setResendDisabled] = useState(false);
 
   try {
     const res = await axios.post(
-      "http://localhost:8000/user/send-otp",
+    `${import.meta.env.VITE_API_URL}/user/send-otp`,
       { email },
       { withCredentials: true }
     );
@@ -207,7 +207,7 @@ const handleVerifyOTP = async (otp) => {
 
   try {
     const res = await axios.post(
-      "http://localhost:8000/user/verify-otp",
+      `${import.meta.env.VITE_API_URL}/user/verify-otp`,
       { email, otp },
       { withCredentials: true }
     );
@@ -233,7 +233,7 @@ const handleVerifyOTP = async (otp) => {
     setIsLoading(true);
     try {
       const response = await axios.post(
-        "http://localhost:8000/user/resident/signup",
+        `${import.meta.env.VITE_API_URL}/user/resident/signup`,
         {
           fullName: data.fullName,
           email: data.email,

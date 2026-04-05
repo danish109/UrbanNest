@@ -122,7 +122,7 @@ const FindSociety = () => {
   const fetchSocieties = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get("http://localhost:8000/society/all");
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/society/all`);
       if (response.data.success) {
         setSocieties(response.data.data);
         setFilteredSocieties(response.data.data);

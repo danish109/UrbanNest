@@ -5,8 +5,8 @@ import { useSelector } from "react-redux";
 import { createPortal } from "react-dom";
 
 // ─── Constants ────────────────────────────────────────────────
-const API_BASE = "http://localhost:8000";
-const SOCKET_URL = "http://localhost:5000";
+const API_BASE = `${import.meta.env.VITE_API_URL}`;
+const SOCKET_URL = `${import.meta.env.VITE_API_URL}`;
 const EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
 
 const socket = io(SOCKET_URL, { withCredentials: true });

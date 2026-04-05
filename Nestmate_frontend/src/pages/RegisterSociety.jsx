@@ -91,7 +91,7 @@ const [canResend, setCanResend] = useState(false);
     setIsLoading(true);
     try {
       if (!isOtpSent) {
-        await axios.post("http://localhost:8000/society/register", {
+        await axios.post(`${import.meta.env.VITE_API_URL}/society/register`, {
           ...formData,
           towers,
         });
@@ -101,7 +101,7 @@ const [canResend, setCanResend] = useState(false);
         setIsLoading(false);
         return;
       }
-      const res = await axios.post("http://localhost:8000/society/register", {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/society/register`, {
         ...formData,
         towers,
         otp,
@@ -133,7 +133,7 @@ const [canResend, setCanResend] = useState(false);
   try {
     setIsLoading(true);
 
-    await axios.post("http://localhost:8000/society/register", {
+    await axios.post(`${import.meta.env.VITE_API_URL}/society/register`, {
       ...formData,
       towers,
     });
@@ -1078,212 +1078,3 @@ const [canResend, setCanResend] = useState(false);
 };
 
 export default RegisterSociety;
-// import React, { useState, useEffect } from "react";
-// import { motion } from "framer-motion";
-// import axios from "axios";
-// import { toast, ToastContainer } from "react-toastify";
-// import "react-toastify/dist/ReactToastify.css";
-// import {
-//   FaBuilding, FaMapMarkerAlt, FaCity, FaFlag, FaHome,
-//   FaUser, FaEnvelope, FaPhone, FaLock, FaPlus,
-//   FaTrash, FaArrowRight, FaShieldAlt, FaUsers,
-//   FaClock, FaArrowLeft
-// } from "react-icons/fa";
-// import logo from "../assets/logo6.png";
-// import patternBg from "../assets/pattern-bg.jpg";
-
-// const RegisterSociety = () => {
-
-//   const [formData, setFormData] = useState({
-//     societyName: "",
-//     address: "",
-//     city: "",
-//     state: "",
-//     totalFlats: "",
-//     adminName: "",
-//     adminEmail: "",
-//     adminPhone: "",
-//     password: "",
-//   });
-
-//   const [otp, setOtp] = useState("");
-//   const [isOtpSent, setIsOtpSent] = useState(false);
-
-//   const [towers, setTowers] = useState([{ name: "", totalFloors: "" }]);
-//   const [isLoading, setIsLoading] = useState(false);
-
-//   /* ---------------- SUBMIT HANDLER ---------------- */
-
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     setIsLoading(true);
-
-//     try {
-
-//       // STEP 1 → SEND OTP
-//       if (!isOtpSent) {
-//         await axios.post("http://localhost:8000/society/register", {
-//           ...formData,
-//           towers,
-//         });
-
-//         toast.success("OTP sent to your email");
-//         setIsOtpSent(true);
-//         setIsLoading(false);
-//         return;
-//       }
-
-//       // STEP 2 → VERIFY OTP + REGISTER
-//       const res = await axios.post("http://localhost:8000/society/register", {
-//         ...formData,
-//         towers,
-//         otp,
-//       });
-
-//       toast.success("Society Registered Successfully 🎉");
-
-//       // reset
-//       setFormData({
-//         societyName: "",
-//         address: "",
-//         city: "",
-//         state: "",
-//         totalFlats: "",
-//         adminName: "",
-//         adminEmail: "",
-//         adminPhone: "",
-//         password: "",
-//       });
-
-//       setOtp("");
-//       setIsOtpSent(false);
-//       setTowers([{ name: "", totalFloors: "" }]);
-
-//     } catch (error) {
-//       toast.error(error.response?.data?.message || "Something went wrong");
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   };
-
-//   /* ---------------- UI HELPERS ---------------- */
-
-//   const handleChange = (e) => {
-//     setFormData({ ...formData, [e.target.name]: e.target.value });
-//   };
-
-//   const handleTowerChange = (index, e) => {
-//     const values = [...towers];
-//     values[index] = { ...values[index], [e.target.name]: e.target.value };
-//     setTowers(values);
-//   };
-
-//   const addTower = () => setTowers([...towers, { name: "", totalFloors: "" }]);
-
-//   const removeTower = (index) => {
-//     setTowers(towers.filter((_, i) => i !== index));
-//   };
-
-//   const inputWithIcon = (icon, name, placeholder, type = "text") => (
-//     <div style={{ position: "relative" }}>
-//       <span style={{
-//         position: "absolute",
-//         left: "16px",
-//         top: "50%",
-//         transform: "translateY(-50%)",
-//         color: "#94a3b8"
-//       }}>{icon}</span>
-
-//       <input
-//         type={type}
-//         name={name}
-//         placeholder={placeholder}
-//         value={formData[name]}
-//         onChange={handleChange}
-//         required
-//         style={{
-//           width: "100%",
-//           padding: "12px 16px 12px 44px",
-//           borderRadius: "12px",
-//           border: "1px solid #e2e8f0",
-//         }}
-//       />
-//     </div>
-//   );
-
-//   return (
-//     <>
-//       <ToastContainer />
-
-//       <div style={{ padding: "30px" }}>
-
-//         <h2>Register Society</h2>
-
-//         <form onSubmit={handleSubmit}>
-
-//           {inputWithIcon(<FaBuilding />, "societyName", "Society Name")}
-//           {inputWithIcon(<FaMapMarkerAlt />, "address", "Address")}
-//           {inputWithIcon(<FaCity />, "city", "City")}
-//           {inputWithIcon(<FaFlag />, "state", "State")}
-//           {inputWithIcon(<FaHome />, "totalFlats", "Total Flats", "number")}
-
-//           {/* Towers */}
-//           {towers.map((tower, index) => (
-//             <div key={index}>
-//               <input
-//                 type="text"
-//                 name="name"
-//                 placeholder="Tower Name"
-//                 value={tower.name}
-//                 onChange={(e) => handleTowerChange(index, e)}
-//               />
-//               <input
-//                 type="number"
-//                 name="totalFloors"
-//                 placeholder="Total Floors"
-//                 value={tower.totalFloors}
-//                 onChange={(e) => handleTowerChange(index, e)}
-//               />
-//               <button type="button" onClick={() => removeTower(index)}>X</button>
-//             </div>
-//           ))}
-
-//           <button type="button" onClick={addTower}>Add Tower</button>
-
-//           {/* Admin */}
-//           {inputWithIcon(<FaUser />, "adminName", "Admin Name")}
-//           {inputWithIcon(<FaEnvelope />, "adminEmail", "Admin Email")}
-//           {inputWithIcon(<FaPhone />, "adminPhone", "Phone")}
-//           {inputWithIcon(<FaLock />, "password", "Password", "password")}
-
-//           {/* OTP FIELD (NEW) */}
-//           {isOtpSent && (
-//             <input
-//               type="text"
-//               placeholder="Enter OTP"
-//               value={otp}
-//               onChange={(e) => setOtp(e.target.value)}
-//               required
-//               style={{
-//                 marginTop: "10px",
-//                 padding: "10px",
-//                 width: "100%",
-//               }}
-//             />
-//           )}
-
-//           <button type="submit" disabled={isLoading}>
-//             {isLoading
-//               ? "Processing..."
-//               : isOtpSent
-//               ? "Verify OTP & Register"
-//               : "Send OTP"}
-//           </button>
-
-//         </form>
-//       </div>
-//     </>
-//   );
-// };
-
-// export default RegisterSociety;
