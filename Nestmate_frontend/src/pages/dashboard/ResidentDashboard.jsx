@@ -343,7 +343,7 @@ const ResidentDashboard = () => {
     try {
       const r = await api("get", "/profile");
       if (r.data.success) {
-        dispatchEvent(setProfile(r.data.profile));
+        setProfile(r.data.profile);
         const p = r.data.profile;
         setProfileForm({ fullName: p.fullName || "", phone: p.phone || "", alternatePhone: p.alternatePhone || "", bio: p.bio || "", occupation: p.occupation || "", numberOfMembers: p.numberOfMembers || "", dateOfBirth: p.dateOfBirth ? p.dateOfBirth.slice(0, 10) : "" });
         if (p.notifications) setNotifPrefs(p.notifications);
